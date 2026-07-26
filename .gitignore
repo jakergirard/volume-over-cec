@@ -1,0 +1,9 @@
+# build artifacts
+*.ipk
+app/cecvold
+cecvold
+*.o
+# generated at release time
+dist/*.manifest.json
+# tooling
+node_modules/

@@ -1,0 +1,53 @@
+name: release
+on:
+  push:
+    tags: [ 'v*' ]
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build aarch64 binary
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+          aarch64-linux-gnu-gcc -O2 -static -o app/cecvold cecvold.c
+          aarch64-linux-gnu-strip app/cecvold
+          chmod +x app/cecvold
+
+      - name: Package ipk
+        run: |
+          npm install -g @webosose/ares-cli
+          ares-package app/ -o .
+
+      - name: Generate manifest
+        run: |
+          IPK=$(ls org.webosbrew.cecvold_*_all.ipk)
+          VER=$(node -e "console.log(require('./app/appinfo.json').version)")
+          SHA=$(sha256sum "$IPK" | awk '{print $1}')
+          BASE="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}"
+          cat > org.webosbrew.cecvold.manifest.json <<JSON
+          {
+            "id": "org.webosbrew.cecvold",
+            "version": "${VER}",
+            "type": "web",
+            "title": "Volume over CEC",
+            "appDescription": "Apple TV volume over HDMI-CEC on LG webOS TV speakers, with the native OSD.",
+            "iconUri": "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/main/app/icon.png",
+            "sourceUrl": "https://github.com/${GITHUB_REPOSITORY}",
+            "rootRequired": true,
+            "ipkUrl": "${BASE}/${IPK}",
+            "ipkHash": { "sha256": "${SHA}" }
+          }
+          JSON
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            org.webosbrew.cecvold_*_all.ipk
+            org.webosbrew.cecvold.manifest.json

@@ -1,0 +1,18 @@
+{
+  "id": "org.webosbrew.cecvold",
+  "version": "0.1.0",
+  "vendor": "jrg",
+  "type": "web",
+  "main": "index.html",
+  "title": "Volume over CEC",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png",
+  "bgColor": "#0e0e10",
+  "iconColor": "#0e0e10",
+  "disableBackHistoryAPI": true,
+  "handlesRelaunch": true,
+  "requiredPermissions": [
+    "activity.operation",
+    "time.query"
+  ]
+}
