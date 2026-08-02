@@ -1,7 +1,8 @@
 #!/bin/sh
-# Volume over CEC autostart hook.
+# Volume over CEC autostart hook. EMIT_NODE from: cecvold --autodetect
 BIN=/media/developer/apps/usr/palm/applications/org.webosbrew.cecvold/cecvold
+EMIT_NODE=/dev/input/event4
 [ -x "$BIN" ] || exit 0
 pidof cecvold >/dev/null 2>&1 && exit 0
-"$BIN" --cec /dev/cec0 --output tv_speaker >/var/log/cecvold.log 2>&1 &
+"$BIN" --cec /dev/cec0 --emit-node "$EMIT_NODE" >/var/log/cecvold.log 2>&1 &
 exit 0

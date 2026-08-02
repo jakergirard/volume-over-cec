@@ -1,0 +1,22 @@
+# Submit by PR to https://github.com/webosbrew/apps-repo as
+# packages/org.webosbrew.cecvold.yml
+title: Volume over CEC
+iconUri: https://raw.githubusercontent.com/jakergirard/volume-over-cec/main/app/icon.png
+manifestUrl: https://github.com/jakergirard/volume-over-cec/releases/latest/download/org.webosbrew.cecvold.manifest.json
+category: multimedia
+pool: main
+description: |
+  Re-enables Apple TV (and any source device) volume control over HDMI-CEC on LG
+  webOS TV speakers, with the native on-screen volume bar.
+
+  LG webOS ignores inbound CEC volume for its own speakers, so an Apple TV falls
+  back to IR and the iOS Remote app can't change volume at all. This runs a small
+  root daemon that watches the CEC bus and injects the matching key event
+  (KEY_VOLUMEUP/DOWN/MUTE) into the input node webOS already reads, driving the
+  native volume path: real OSD, native repeat, and volume that works from the iOS
+  app too. Requires root and the Homebrew Channel.
+
+  Open the app once and press Enable; it autodetects the injection node and
+  installs a boot hook so it starts on every reboot.
+funding:
+  github: [ jakergirard ]
