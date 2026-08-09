@@ -1,8 +1,21 @@
 #!/bin/sh
-# Volume over CEC autostart hook. EMIT_NODE from: cecvold --autodetect
+# Volume over CEC - managed by the app UI. Values below are written by the app.
+ENABLED=1
+CEC=/dev/cec0
+EMIT=inject
+EMIT_NODE=/dev/input/event1
+HOLD=0
+OUTPUT=tv_speaker
+KEY_UP=115
+KEY_DOWN=114
+KEY_MUTE=113
 BIN=/media/developer/apps/usr/palm/applications/org.webosbrew.cecvold/cecvold
-EMIT_NODE=/dev/input/event4
+LOG=/var/log/cecvold.log
+# --- do not edit below ---
+[ "$ENABLED" = "1" ] || exit 0
 [ -x "$BIN" ] || exit 0
 pidof cecvold >/dev/null 2>&1 && exit 0
-"$BIN" --cec /dev/cec0 --emit-node "$EMIT_NODE" >/var/log/cecvold.log 2>&1 &
+A="--cec $CEC --emit $EMIT --emit-node $EMIT_NODE --output $OUTPUT --key-up $KEY_UP --key-down $KEY_DOWN --key-mute $KEY_MUTE"
+[ "$HOLD" = "1" ] && A="$A --hold"
+"$BIN" $A >"$LOG" 2>&1 &
 exit 0

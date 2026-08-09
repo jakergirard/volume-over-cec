@@ -5,64 +5,363 @@
 <meta name="viewport" content="width=1920,height=1080">
 <title>Volume over CEC</title>
 <style>
-  html,body{margin:0;height:100%;background:#0e0e10;color:#e8e8ea;
-    font-family:-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
-  .wrap{max-width:980px;margin:0 auto;padding:72px 64px}
-  h1{font-size:48px;font-weight:650;margin:0 0 6px}
-  .sub{font-size:22px;color:#9a9aa2;margin:0 0 40px}
-  .card{background:#17171b;border:1px solid #26262c;border-radius:16px;padding:36px 40px}
-  .statusrow{display:flex;align-items:center;gap:18px;font-size:34px}
-  .dot{width:20px;height:20px;border-radius:50%;background:#6b6b73}
-  .dot.on{background:#3fbf5f}.dot.off{background:#c14b4b}
-  .btns{margin-top:34px;display:flex;gap:22px}
-  button{font-size:30px;padding:20px 40px;border-radius:12px;border:0;color:#fff;cursor:pointer;outline:none}
-  button:focus{box-shadow:0 0 0 4px #4f7cff}
-  .go{background:#2f6bff}.stop{background:#3a3a42}
-  .note{font-size:20px;color:#8a8a92;line-height:1.5;margin-top:24px}
-  code{background:#000;padding:2px 8px;border-radius:6px;color:#cfe3ff}
-  #log{font-size:18px;color:#7d7d86;white-space:pre-wrap;margin-top:18px;min-height:26px}
+:root{
+  --bg:#0d0e11; --rail:#0d0e11; --card:rgba(255,255,255,.055); --card-b:rgba(255,255,255,.09);
+  --row-b:rgba(255,255,255,.07); --ink:#f5f6f8; --ink2:#a6abb4; --ink3:#6a6f78;
+  --track:rgba(255,255,255,.18); --knob:#cfd3d9;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:
+  radial-gradient(1200px 700px at 78% -12%, #16181d 0%, #0d0e11 60%) fixed,#0d0e11;
+  color:var(--ink);font-family:var(--sans);overflow:hidden;-webkit-font-smoothing:antialiased}
+
+.app{display:grid;grid-template-columns:312px 1fr;min-height:100vh}
+.rail{padding:56px 22px 40px 60px;display:flex;flex-direction:column;gap:6px}
+.rbrand{display:flex;align-items:center;gap:13px;margin-bottom:40px}
+.rbrand .bars{display:flex;align-items:flex-end;gap:3px;height:22px}
+.rbrand .bars i{width:4px;border-radius:1px;background:var(--ink)}
+.rbrand .bars i:nth-child(1){height:40%;opacity:.5}
+.rbrand .bars i:nth-child(2){height:64%;opacity:.5}
+.rbrand .bars i:nth-child(3){height:82%}
+.rbrand .bars i:nth-child(4){height:100%}
+.rbrand span{font-size:17px;font-weight:600;letter-spacing:.01em}
+.navitem{text-align:left;font-family:var(--sans);font-size:23px;font-weight:500;
+  color:var(--ink2);background:transparent;border:0;border-radius:14px;padding:16px 20px;cursor:pointer;
+  transition:background .12s,color .12s}
+.navitem[aria-current="true"]{background:rgba(255,255,255,.10);color:var(--ink)}
+.navitem:focus{outline:none;background:#fff;color:#141518}
+
+.content{padding:60px 76px 56px 44px;overflow:auto}
+.view{animation:fade .18s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+h1{font-size:41px;font-weight:600;letter-spacing:-.015em}
+.sub{font-size:20px;color:var(--ink2);margin-top:8px}
+.gaptop{margin-top:34px}
+
+/* grouped rows */
+.group{background:var(--card);border:1px solid var(--card-b);border-radius:20px;
+  padding:2px 26px;margin-top:22px}
+.grouplabel{font-size:16px;color:var(--ink3);letter-spacing:.02em;margin:30px 0 -6px 6px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:24px;
+  padding:22px 4px;border-bottom:1px solid var(--row-b)}
+.row:last-child{border-bottom:0}
+.rl{display:flex;flex-direction:column;gap:5px}
+.rl .t{font-size:23px;font-weight:500}
+.rl .d{font-size:17px;color:var(--ink2);line-height:1.35;max-width:640px}
+.rv{font-size:21px;color:var(--ink2);white-space:nowrap}
+
+/* toggle */
+.tog{position:relative;width:74px;height:42px;border-radius:999px;background:var(--track);
+  border:0;cursor:pointer;flex:0 0 auto;transition:background .16s}
+.tog::after{content:"";position:absolute;top:5px;left:5px;width:32px;height:32px;border-radius:50%;
+  background:var(--knob);transition:transform .16s,background .16s}
+.tog[aria-checked="true"]{background:#fff}
+.tog[aria-checked="true"]::after{transform:translateX(32px);background:#141518}
+.tog:focus{outline:none;box-shadow:0 0 0 3px var(--bg),0 0 0 6px #fff}
+
+/* actionable row (whole row focusable) */
+.arow{cursor:pointer;border-radius:14px;transition:background .12s,color .12s}
+.arow:focus{outline:none;background:#fff;color:#141518}
+.arow:focus .rl .d,.arow:focus .rv,.arow:focus .chev{color:#3a3d42}
+.chev{font-size:21px;color:var(--ink3)}
+
+/* volume bar */
+.volrow{display:flex;align-items:center;gap:22px;padding:24px 4px}
+.bar{flex:1;height:8px;border-radius:999px;background:rgba(255,255,255,.14);overflow:hidden;max-width:560px}
+.barfill{height:100%;border-radius:999px;background:var(--ink);width:0;transition:width .18s}
+.volnum{font-size:30px;font-weight:600;min-width:64px;text-align:right;font-variant-numeric:tabular-nums}
+.volnum.dim{color:var(--ink3)}
+
+/* buttons */
+.actions{display:flex;gap:16px;margin-top:32px;flex-wrap:wrap}
+.btn{font-family:var(--sans);font-size:21px;font-weight:600;padding:16px 34px;border-radius:14px;
+  border:0;cursor:pointer;color:var(--ink);background:rgba(255,255,255,.10);transition:.12s}
+.btn.primary{background:rgba(255,255,255,.92);color:#141518}
+.btn.danger{background:transparent;color:#e98b84;box-shadow:inset 0 0 0 1px rgba(233,139,132,.35)}
+.btn:focus{outline:none;background:#fff;color:#141518;box-shadow:0 0 0 3px var(--bg),0 0 0 6px #fff}
+.btn.danger:focus{color:#141518}
+.btn:disabled{opacity:.4;cursor:default}
+
+/* inputs (advanced) */
+.field{margin-top:22px}
+.field .fl{font-size:17px;color:var(--ink2);margin-bottom:10px}
+input.txt{font-family:var(--sans);font-size:20px;color:var(--ink);background:rgba(255,255,255,.06);
+  border:1px solid var(--card-b);border-radius:12px;padding:14px 16px;width:340px}
+input.txt:focus{outline:none;border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.18)}
+.kc{display:flex;gap:18px;flex-wrap:wrap}
+.advtoggle{margin-top:26px}
+
+/* checks / pills / log */
+.check{display:flex;align-items:center;gap:14px;padding:20px 4px;border-bottom:1px solid var(--row-b);font-size:22px}
+.check:last-child{border-bottom:0}
+.check .dot{width:26px;height:26px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;
+  justify-content:center;font-size:15px;color:#141518;background:var(--ink3)}
+.check.pass .dot{background:#5ec98c} .check.fail .dot{background:#e98b84}
+.check .cs{margin-left:auto;font-size:17px;color:var(--ink3)}
+.tres{display:flex;gap:14px;flex-wrap:wrap;margin-top:24px}
+.pill{font-size:19px;padding:13px 20px;border-radius:14px;background:rgba(255,255,255,.06);
+  border:1px solid var(--card-b);color:var(--ink2)}
+.pill.hit{color:var(--ink);background:rgba(255,255,255,.12)}
+.pill b{font-weight:600}
+.logbox{margin-top:22px;background:rgba(0,0,0,.35);border:1px solid var(--card-b);border-radius:16px;
+  padding:20px 22px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:15px;color:var(--ink2);
+  line-height:1.6;white-space:pre-wrap;max-height:320px;overflow:auto}
+.msg{font-size:18px;margin-top:18px;min-height:22px;color:var(--ink2)}
+.msg.ok{color:#7fd3a3} .msg.err{color:#e98b84}
+.spin{display:inline-block;width:17px;height:17px;border:2px solid rgba(255,255,255,.2);
+  border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-3px}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* wizard */
+.wizwrap{max-width:900px;padding:70px 76px 56px 76px}
+.steps{display:flex;gap:8px;margin-bottom:26px}
+.steps i{height:4px;width:44px;border-radius:2px;background:rgba(255,255,255,.14)}
+.steps i.on{background:#fff}
+.wkicker{font-size:17px;color:var(--ink2);margin-bottom:14px}
+.wtitle{font-size:46px;font-weight:600;letter-spacing:-.02em;line-height:1.06}
+.wbody{font-size:22px;color:var(--ink2);line-height:1.5;margin-top:18px;max-width:760px}
+.wbody b{color:var(--ink);font-weight:600}
+.wnav{display:flex;gap:16px;margin-top:40px}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>Volume over CEC</h1>
-  <p class="sub">Re-enables Apple TV volume control over HDMI-CEC on TV speakers.</p>
-  <div class="card">
-    <div class="statusrow"><span id="dot" class="dot"></span><span id="status">Checking&hellip;</span></div>
-    <div class="btns">
-      <button id="enable" class="go">Enable</button>
-      <button id="disable" class="stop">Disable</button>
-    </div>
-    <div id="log"></div>
-    <div class="note">On the Apple TV set <b>Settings &rsaquo; Remotes and Devices &rsaquo;
-      Volume Control &rsaquo; HDMI</b>. Requires a rooted TV with the Homebrew Channel.</div>
-  </div>
+<div class="app">
+  <aside class="rail" id="rail">
+    <div class="rbrand"><span class="bars"><i></i><i></i><i></i><i></i></span><span>Volume over CEC</span></div>
+    <button class="navitem" data-view="status" aria-current="true">Status</button>
+    <button class="navitem" data-view="settings">Settings</button>
+    <button class="navitem" data-view="diagnostics">Diagnostics</button>
+  </aside>
+  <main class="content"><div class="view" id="view"></div></main>
 </div>
+
 <script>
+"use strict";
 var APP="/media/developer/apps/usr/palm/applications/org.webosbrew.cecvold";
-var HOOK="/var/lib/webosbrew/init.d/cecvold";
-function luna(uri,params,cb){try{var b=new PalmServiceBridge();
-  b.onservicecallback=function(s){var r;try{r=JSON.parse(s);}catch(e){r={raw:s};}cb&&cb(r);};
-  b.call(uri,JSON.stringify(params||{}));}catch(e){cb&&cb({returnValue:false,error:String(e)});}}
-function rootExec(cmd,cb){luna("luna://org.webosbrew.hbchannel.service/exec",{command:cmd},function(r){
-  cb(r.returnValue!==false,String(r.stdoutString||r.stdout||r.output||r.raw||""));});}
-function setStatus(on){document.getElementById("dot").className="dot "+(on?"on":"off");
-  document.getElementById("status").textContent=on?"Running":"Stopped";}
-function refresh(){rootExec("pidof cecvold >/dev/null 2>&1 && echo RUNNING || echo STOPPED",function(ok,out){
-  if(!ok){document.getElementById("status").textContent="Homebrew Channel service not reachable";return;}
-  setStatus(out.indexOf("RUNNING")>=0);});}
-function log(m){document.getElementById("log").textContent=m;}
-document.getElementById("enable").onclick=function(){log("Enabling\u2026");
-  var cmd='chmod +x '+APP+'/cecvold; NODE=$('+APP+'/cecvold --autodetect 2>/dev/null | tail -1); '
-    +'[ -n "$NODE" ] || NODE=/dev/input/event4; mkdir -p /var/lib/webosbrew/init.d && '
-    +'cp '+APP+'/cecvold.hook '+HOOK+' && sed -i "s|^EMIT_NODE=.*|EMIT_NODE=$NODE|" '+HOOK+' && '
-    +'chmod +x '+HOOK+' && sh '+HOOK+' && echo "node=$NODE"';
-  rootExec(cmd,function(ok,out){log(ok?("Enabled. "+out):("Failed: "+out));setTimeout(refresh,800);});};
-document.getElementById("disable").onclick=function(){log("Disabling\u2026");
-  rootExec("rm -f "+HOOK+"; kill $(pidof cecvold) 2>/dev/null; true",function(ok,out){
-    log(ok?"Disabled.":("Failed: "+out));setTimeout(refresh,600);});};
-document.addEventListener("keydown",function(e){if(e.keyCode===461)window.close();});
-refresh();
+var BIN=APP+"/cecvold", HDIR="/var/lib/webosbrew/init.d", HOOK=HDIR+"/cecvold", LOG="/var/log/cecvold.log";
+
+var state={ ready:false, configured:false, enabled:false, running:false, cecPresent:false, binPresent:false,
+  cfg:{cec:"/dev/cec0",emit:"inject",node:"/dev/input/event1",hold:"0",output:"tv_speaker",keyUp:"115",keyDown:"114",keyMute:"113"} };
+var curView="status", volTimer=null, lastLevel=-1;
+
+/* bridge */
+function luna(uri,params){return new Promise(function(res){try{var b=new PalmServiceBridge();
+  b.onservicecallback=function(s){var r;try{r=JSON.parse(s);}catch(e){r={returnValue:false,raw:s};}res(r);};
+  b.call(uri,JSON.stringify(params||{}));}catch(e){res({returnValue:false,error:String(e)});}});}
+async function exec(cmd){var r=await luna("luna://org.webosbrew.hbchannel.service/exec",{command:cmd});
+  return {ok:r.returnValue!==false,out:String(r.stdoutString||r.stdout||r.output||r.raw||"")};}
+function b64(s){return btoa(unescape(encodeURIComponent(s)));}
+function writeFile(p,c){return exec("echo '"+b64(c)+"' | base64 -d > "+p);}
+
+/* config <-> hook */
+function hookText(c,enabled){return [
+  "#!/bin/sh","# Volume over CEC - managed by the app UI. Values below are written by the app.",
+  "ENABLED="+(enabled?"1":"0"),"CEC="+c.cec,"EMIT="+c.emit,"EMIT_NODE="+c.node,"HOLD="+c.hold,
+  "OUTPUT="+c.output,"KEY_UP="+c.keyUp,"KEY_DOWN="+c.keyDown,"KEY_MUTE="+c.keyMute,"BIN="+BIN,"LOG="+LOG,
+  "# --- do not edit below ---",'[ "$ENABLED" = "1" ] || exit 0','[ -x "$BIN" ] || exit 0',
+  'pidof cecvold >/dev/null 2>&1 && exit 0',
+  'A="--cec $CEC --emit $EMIT --emit-node $EMIT_NODE --output $OUTPUT --key-up $KEY_UP --key-down $KEY_DOWN --key-mute $KEY_MUTE"',
+  '[ "$HOLD" = "1" ] && A="$A --hold"','"$BIN" $A >"$LOG" 2>&1 &',"exit 0"].join("\n")+"\n";}
+function parseHook(txt){var g=function(k){var m=txt.match(new RegExp("^"+k+"=(.*)$","m"));return m?m[1].trim():null;};
+  if(!g("BIN"))return null;
+  return {enabled:g("ENABLED")==="1", cfg:{cec:g("CEC")||"/dev/cec0",emit:g("EMIT")||"inject",
+    node:g("EMIT_NODE")||"/dev/input/event1",hold:g("HOLD")||"0",output:g("OUTPUT")||"tv_speaker",
+    keyUp:g("KEY_UP")||"115",keyDown:g("KEY_DOWN")||"114",keyMute:g("KEY_MUTE")||"113"}};}
+
+/* actions */
+async function refresh(){
+  var cmd='echo "PID=$(pidof cecvold|tr \' \' \',\')"; echo "CEC=$(ls /dev/cec0 2>/dev/null)"; '
+        +'echo "BIN=$(test -x '+BIN+' && echo 1)"; echo "===HOOK==="; cat '+HOOK+' 2>/dev/null';
+  var r=await exec(cmd);
+  if(!r.ok&&!r.out){state.ready=false;return;}
+  state.running=((r.out.match(/PID=(.*)/)||[])[1]||"").trim().length>0;
+  state.cecPresent=((r.out.match(/CEC=(.*)/)||[])[1]||"").trim().length>0;
+  state.binPresent=((r.out.match(/BIN=(.*)/)||[])[1]||"").trim()==="1";
+  var p=parseHook((r.out.split("===HOOK===")[1]||"").trim());
+  state.configured=!!p; if(p){state.cfg=p.cfg;state.enabled=p.enabled;} else {state.enabled=false;}
+  state.ready=true;
+}
+async function syncHook(){
+  await writeFile(HOOK,hookText(state.cfg,state.enabled));
+  var cmd="mkdir -p "+HDIR+" && chmod +x "+HOOK+" && chmod +x "+BIN+"; kill $(pidof cecvold) 2>/dev/null; true";
+  if(state.enabled) cmd+="; sh "+HOOK;
+  await exec(cmd);
+}
+async function removeAll(){ await exec("rm -f "+HOOK+"; kill $(pidof cecvold) 2>/dev/null; true"); state.enabled=false; }
+async function detectNode(){var r=await exec(BIN+" --autodetect 2>/dev/null | tail -1");
+  return (r.out.match(/\/dev\/input\/event\d+/)||[])[0]||"";}
+async function volumeTest(sec){var lg="/tmp/cecvold-probe.log";
+  var r=await exec("timeout "+sec+" "+BIN+" -v --emit inject --emit-node /dev/null 2>"+lg+" >/dev/null; "
+    +"echo \"UP=$(grep -c '44 41' "+lg+") DN=$(grep -c '44 42' "+lg+") MU=$(grep -c '44 43' "+lg+")\"");
+  return {up:+(r.out.match(/UP=(\d+)/)||[])[1]||0,dn:+(r.out.match(/DN=(\d+)/)||[])[1]||0,mu:+(r.out.match(/MU=(\d+)/)||[])[1]||0};}
+async function readLog(){var r=await exec("tail -n 22 "+LOG+" 2>/dev/null; echo; echo \"[pid $(pidof cecvold)]\"");return r.out.trim()||"No log yet.";}
+
+/* volume meter */
+function updateBar(level,muted){var f=document.getElementById("barfill"),n=document.getElementById("volnum");if(!f)return;
+  f.style.width=(muted?0:level)+"%"; n.textContent=muted?"Muted":level; n.className="volnum"+(muted?" dim":"");
+  lastLevel=level;}
+async function pollVol(){var r=await exec("luna-send -n 1 -f 'luna://com.webos.service.audio/master/getVolume' '{}' 2>/dev/null");
+  var m=r.out.match(/"volume"\s*:\s*(\d+)/),mu=/"muted"\s*:\s*true/.test(r.out); if(m)updateBar(parseInt(m[1],10),mu);}
+function startVol(){stopVol();pollVol();volTimer=setInterval(pollVol,1200);}
+function stopVol(){if(volTimer){clearInterval(volTimer);volTimer=null;}}
+
+/* view routing */
+var view=document.getElementById("view");
+function setView(name){curView=name;stopVol();
+  document.querySelectorAll(".navitem").forEach(function(b){b.setAttribute("aria-current",b.dataset.view===name?"true":"false");});
+  ({status:renderStatus,settings:renderSettings,diagnostics:renderDiagnostics}[name])();}
+function focusFirst(){var b=view.querySelector(".tog,.arow,.btn,input,[tabindex]");if(b)b.focus();}
+function showRail(on){document.getElementById("rail").style.visibility=on?"visible":"hidden";}
+
+/* STATUS */
+function renderStatus(){
+  var c=state.cfg, on=state.enabled;
+  var h='<h1>Status</h1><div class="sub">'+(state.running?"Volume control is active.":on?"Enabled, waiting for CEC.":"Volume control is off.")+'</div>';
+  h+='<div class="group"><div class="row"><div class="rl"><span class="t">Volume control</span>'
+    +'<span class="d">Bridge Apple TV volume over HDMI-CEC to the TV speakers.</span></div>'
+    +'<button class="tog" id="master" aria-checked="'+(on?"true":"false")+'"></button></div></div>';
+  if(on){
+    h+='<div class="group"><div class="volrow"><div class="bar"><div class="barfill" id="barfill"></div></div>'
+      +'<div class="volnum dim" id="volnum">--</div></div></div>';
+    h+='<div class="group">'
+      +sRow("On-screen bar", c.emit==="inject"?"On":"Off")
+      +sRow("Injection node", c.emit==="inject"?c.node:"Not used")
+      +sRow("When held", c.hold==="1"?"TV's repeat rate":"Steady rate")
+      +'</div>';
+  }
+  view.innerHTML=h;
+  document.getElementById("master").onclick=async function(){
+    state.enabled=!state.enabled; if(state.enabled&&!state.cfg.node){ /* keep */ }
+    await syncHook(); await refresh(); setView("status");
+  };
+  if(on)startVol();
+  focusFirst();
+}
+function sRow(k,v){return '<div class="row"><div class="rl"><span class="t">'+k+'</span></div><div class="rv">'+v+'</div></div>';}
+
+/* SETTINGS */
+var advOpen=false;
+function renderSettings(){
+  var c=state.cfg;
+  var h='<h1>Settings</h1><div class="sub">Changes apply immediately.</div>';
+  h+='<div class="group">'
+    +'<div class="row"><div class="rl"><span class="t">Show on-screen volume bar</span>'
+    +'<span class="d">Use the TV\u2019s native volume display. Turn off to fall back to the audio service (no bar).</span></div>'
+    +'<button class="tog" id="tEmit" aria-checked="'+(c.emit==="inject"?"true":"false")+'"></button></div>'
+    +'<div class="row"><div class="rl"><span class="t">Match the TV\u2019s repeat rate</span>'
+    +'<span class="d">Hold to ramp at the TV\u2019s own speed. Off repeats at a steady rate.</span></div>'
+    +'<button class="tog" id="tHold" aria-checked="'+(c.hold==="1"?"true":"false")+'"></button></div>'
+    +'</div>';
+  h+='<div class="group"><div class="row arow" id="rDetect" tabindex="0"><div class="rl">'
+    +'<span class="t">Injection node</span><span class="d" id="nodeSub">'+(c.emit==="inject"?c.node:"Not used in fallback mode")+'</span></div>'
+    +'<span class="chev" id="detState">Detect \u203a</span></div></div>';
+  h+='<button class="btn advtoggle" id="advBtn">'+(advOpen?"Hide advanced":"Advanced")+'</button>';
+  if(advOpen){
+    h+='<div class="group" style="margin-top:16px">'
+      +'<div class="row"><div class="rl"><span class="t">CEC adapter</span></div><input class="txt" id="cec" value="'+c.cec+'" style="width:220px"></div>'
+      +'<div class="row"><div class="rl"><span class="t">Sound output</span><span class="d">Fallback mode only</span></div><input class="txt" id="output" value="'+c.output+'" style="width:220px"></div>'
+      +'<div class="row"><div class="rl"><span class="t">Keycodes</span><span class="d">Up / down / mute</span></div>'
+      +'<div class="kc"><input class="txt" id="ku" value="'+c.keyUp+'" style="width:110px"><input class="txt" id="kd" value="'+c.keyDown+'" style="width:110px"><input class="txt" id="km" value="'+c.keyMute+'" style="width:110px"></div></div>'
+      +'</div><div class="actions"><button class="btn primary" id="advApply">Apply advanced</button></div>';
+  }
+  h+='<div class="actions"><button class="btn danger" id="remove">Remove setup</button></div><div class="msg" id="msg"></div>';
+  view.innerHTML=h;
+
+  document.getElementById("tEmit").onclick=async function(){ this.setAttribute("aria-checked",this.getAttribute("aria-checked")==="true"?"false":"true");
+    state.cfg.emit=this.getAttribute("aria-checked")==="true"?"inject":"luna"; await syncHook(); document.getElementById("nodeSub").textContent=state.cfg.emit==="inject"?state.cfg.node:"Not used in fallback mode"; };
+  document.getElementById("tHold").onclick=async function(){ this.setAttribute("aria-checked",this.getAttribute("aria-checked")==="true"?"false":"true");
+    state.cfg.hold=this.getAttribute("aria-checked")==="true"?"1":"0"; await syncHook(); };
+  document.getElementById("rDetect").onclick=async function(){ var el=document.getElementById("detState"); el.innerHTML='<span class="spin"></span>';
+    var n=await detectNode(); if(n){state.cfg.node=n; document.getElementById("nodeSub").textContent=n; await syncHook(); el.textContent="Detect \u203a";} else {el.textContent="Not found"; } };
+  document.getElementById("rDetect").onkeydown=function(e){ if(e.keyCode===13) this.onclick(); };
+  document.getElementById("advBtn").onclick=function(){ advOpen=!advOpen; renderSettings(); };
+  if(advOpen) document.getElementById("advApply").onclick=async function(){
+    state.cfg.cec=val("cec");state.cfg.output=val("output");state.cfg.keyUp=val("ku");state.cfg.keyDown=val("kd");state.cfg.keyMute=val("km");
+    await syncHook(); msg("Applied.","ok"); };
+  document.getElementById("remove").onclick=async function(){ await removeAll(); advOpen=false; await refresh(); showRail(false); wiz.step=0; renderWizard(); };
+  focusFirst();
+}
+function val(id){return document.getElementById(id).value.trim();}
+function msg(t,cls){var m=document.getElementById("msg");if(m){m.textContent=t;m.className="msg"+(cls?" "+cls:"");}}
+
+/* DIAGNOSTICS */
+async function renderDiagnostics(){
+  view.innerHTML='<h1>Diagnostics</h1><div class="sub">Check that the Apple TV is sending CEC volume.</div>'
+    +'<div class="actions"><button class="btn primary" id="vt">Test volume</button><button class="btn" id="rl">Refresh log</button></div>'
+    +'<div class="tres" id="tres"></div><div class="logbox" id="logbox">loading\u2026</div>';
+  document.getElementById("vt").onclick=async function(){var b=this;b.disabled=true;
+    document.getElementById("tres").innerHTML='<span class="pill"><span class="spin"></span> Listening 8s \u2014 press volume on the Apple TV\u2026</span>';
+    var r=await volumeTest(8);b.disabled=false;var t=r.up+r.dn+r.mu;
+    document.getElementById("tres").innerHTML=t>0?pill("Up",r.up)+pill("Down",r.dn)+pill("Mute",r.mu)
+      :'<span class="pill">No CEC volume seen. Set the Apple TV to Volume Control \u203a HDMI.</span>';};
+  document.getElementById("rl").onclick=async function(){document.getElementById("logbox").textContent=await readLog();};
+  document.getElementById("logbox").textContent=await readLog(); focusFirst();
+}
+function pill(n,v){return '<span class="pill'+(v>0?" hit":"")+'">'+n+' <b>'+v+'</b></span>';}
+
+/* WIZARD */
+var wiz={step:0,node:"",emit:"inject"};
+function renderWizard(){showRail(false);
+  var steps=[wIntro,wCheck,wDetect,wFinish],bar="";
+  for(var i=0;i<steps.length;i++)bar+='<i class="'+(i<=wiz.step?"on":"")+'"></i>';
+  document.querySelector(".content").innerHTML='<div class="view wizwrap" id="wv"><div class="steps">'+bar+'</div>'
+    +'<div class="wkicker">Setup \u00b7 step '+(wiz.step+1)+' of '+steps.length+'</div><div id="wb"></div></div>';
+  steps[wiz.step]();
+}
+function wb(){return document.getElementById("wb");}
+function wnav(next,fn,enabled){var h='<div class="wnav">';
+  if(wiz.step>0)h+='<button class="btn" id="wback">Back</button>';
+  if(next)h+='<button class="btn primary" id="wnext" '+(enabled===false?"disabled":"")+'>'+next+'</button>';
+  h+='</div>';wb().insertAdjacentHTML("beforeend",h);
+  var bk=document.getElementById("wback");if(bk)bk.onclick=function(){wiz.step--;renderWizard();};
+  var nx=document.getElementById("wnext");if(nx&&fn)nx.onclick=fn;
+  var f=document.querySelector("#wv .btn.primary")||document.querySelector("#wv .btn");if(f)f.focus();}
+function wIntro(){wb().innerHTML='<div class="wtitle">Bring back Apple TV volume</div>'
+  +'<div class="wbody">LG ignores CEC volume for its own speakers, so your Apple TV falls back to IR and the app can\u2019t change volume at all. This bridges it back \u2014 with the normal on-screen bar \u2014 and starts on every boot. About a minute.</div>';
+  wnav("Get started",function(){wiz.step++;renderWizard();});}
+async function wCheck(){wb().innerHTML='<div class="wtitle">Checking your TV</div><div class="group" id="chk" style="margin-top:28px"><div class="check"><span class="spin"></span>&nbsp; Running checks\u2026</div></div>';
+  await refresh();var ok=state.cecPresent&&state.binPresent;
+  document.getElementById("chk").innerHTML=chk("Homebrew Channel service",state.ready,state.ready?"Reachable":"Unreachable")
+    +chk("CEC adapter",state.cecPresent,state.cecPresent?"Found":"Missing")+chk("Bridge installed",state.binPresent,state.binPresent?"Yes":"No");
+  if(!ok)wb().insertAdjacentHTML("beforeend",'<div class="wbody">If the service is unreachable, install over SSH (see the README). If CEC is missing, turn on SimpLink in the TV settings and make sure the Apple TV is on an HDMI input.</div>');
+  wnav(ok?"Continue":null,function(){wiz.step++;renderWizard();});}
+function chk(n,pass,st){return '<div class="check '+(pass?"pass":"fail")+'"><span class="dot">'+(pass?"\u2713":"!")+'</span><span>'+n+'</span><span class="cs">'+st+'</span></div>';}
+function wDoneInstruct(){
+  document.querySelector(".content").innerHTML='<div class="view wizwrap">'
+   +'<div class="wkicker" style="color:#7fd3a3">\u2713 Volume control is on</div>'
+   +'<div class="wtitle">One last step \u2014 on the Apple TV</div>'
+   +'<div class="wbody">Open <b>Settings \u203a Remotes and Devices \u203a Volume Control</b> and choose <b>HDMI</b>. The moment you do, volume works \u2014 from the remote and the iOS Remote app. There\u2019s nothing to come back to here.</div>'
+   +'<div class="wbody" style="font-size:19px;color:var(--ink3)">You can confirm it anytime under Diagnostics \u203a Test volume.</div>'
+   +'<div class="wnav"><button class="btn primary" id="wfin">Done</button></div></div>';
+  var f=document.getElementById("wfin");
+  f.onclick=function(){ document.querySelector(".content").innerHTML='<div class="view" id="view"></div>';
+    view=document.getElementById("view"); showRail(true); setView("status"); };
+  f.focus();
+}
+async function wDetect(){wb().innerHTML='<div class="wtitle">Finding the volume channel</div>'
+  +'<div class="wbody">Locating the input your TV model uses for volume. It ticks the volume once while probing, then restores it.</div>'
+  +'<div class="wbody" id="ds"><span class="spin"></span> Detecting\u2026</div>';
+  var n=await detectNode();wiz.node=n;
+  document.getElementById("ds").innerHTML=n?'Found <b>'+n+'</b>':'No node found \u2014 the app will use the audio-service fallback (works, no on-screen bar).';
+  wiz.emit=n?"inject":"luna";
+  wnav("Continue",function(){wiz.step++;renderWizard();});}
+async function wFinish(){wb().innerHTML='<div class="wtitle">Turn it on</div>'
+  +'<div class="wbody">Saves your settings and starts the bridge now. It starts automatically on every boot.</div>'
+  +'<div class="group" style="margin-top:26px">'+sRow("On-screen bar",wiz.emit==="inject"?"On":"Off (fallback)")+sRow("Injection node",wiz.emit==="inject"?wiz.node:"Not used")+'</div><div class="msg" id="msg"></div>';
+  wnav("Turn on",async function(){msg("Turning on\u2026");
+    state.cfg.emit=wiz.emit; if(wiz.node)state.cfg.node=wiz.node; state.enabled=true;
+    await syncHook(); await refresh(); wDoneInstruct();});}
+
+/* boot */
+function boot(){
+  document.querySelectorAll(".navitem").forEach(function(b){b.onclick=function(){ if(view&&document.body.contains(view)){setView(b.dataset.view);} };});
+  document.addEventListener("keydown",function(e){ if(e.keyCode===461){
+    if(!state.configured){ if(wiz.step>0){wiz.step--;renderWizard();} else window.close(); }
+    else if(curView!=="status"){ setView("status"); } else window.close(); }});
+  refresh().then(function(){ if(state.configured){showRail(true);setView("status");} else {wiz.step=0;renderWizard();} });
+}
+if(document.readyState!=="loading")boot();else document.addEventListener("DOMContentLoaded",boot);
 </script>
 </body>
 </html>
