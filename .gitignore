@@ -1,7 +1,8 @@
 # build artifacts
 *.ipk
-app/cecvold
-cecvold
+/cecvold
+cecvold.aarch64
+cecvold.armv7l
 *.o
 # generated at release time
 dist/*.manifest.json

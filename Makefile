@@ -1,24 +1,29 @@
-# Build cecvold for an LG webOS TV.
+# Build cecvold for LG webOS TVs.
 #
-# webOS TV userspace on this generation is almost always 32-bit ARM (armv7l).
-# Confirm on the TV before building:   uname -m        (expect armv7l)
-#                                      file /bin/sh
+# The ipk is universal: it ships both a 64-bit (aarch64) and a 32-bit (armv7l)
+# static binary, and app/cecvold (a tiny sh launcher) execs the one matching
+# `uname -m` at runtime.
 #
-# 32-bit ARM hard-float (default):
-#   Debian/Ubuntu toolchain:  sudo apt install gcc-arm-linux-gnueabihf
-CC      ?= arm-linux-gnueabihf-gcc
-CFLAGS  ?= -O2 -Wall -Wextra -static
-TARGET   = cecvold
+# Toolchains (Debian/Ubuntu):
+#   sudo apt install gcc-aarch64-linux-gnu gcc-arm-linux-gnueabihf
+CFLAGS ?= -O2 -Wall -Wextra -static
 
-$(TARGET): cecvold.c
-	$(CC) $(CFLAGS) -o $(TARGET) cecvold.c
-	@echo "built: $$( file $(TARGET) )"
+all: cecvold.aarch64 cecvold.armv7l
 
-# If 'uname -m' on the TV reports aarch64 instead, build with:
-#   make CC=aarch64-linux-gnu-gcc
-# (Debian/Ubuntu: sudo apt install gcc-aarch64-linux-gnu)
+cecvold.aarch64: cecvold.c
+	aarch64-linux-gnu-gcc $(CFLAGS) -o $@ cecvold.c
+	@echo "built: $$( file $@ )"
+
+cecvold.armv7l: cecvold.c
+	arm-linux-gnueabihf-gcc $(CFLAGS) -o $@ cecvold.c
+	@echo "built: $$( file $@ )"
+
+# Stage both binaries next to the launcher for ares-package.
+app: all
+	cp cecvold.aarch64 cecvold.armv7l app/
+	chmod +x app/cecvold app/cecvold.aarch64 app/cecvold.armv7l
 
 clean:
-	rm -f $(TARGET)
+	rm -f cecvold.aarch64 cecvold.armv7l app/cecvold.aarch64 app/cecvold.armv7l
 
-.PHONY: clean
+.PHONY: all app clean

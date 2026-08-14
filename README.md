@@ -63,12 +63,14 @@ flowchart LR
 ## Building from source
 
 The daemon is a single static C file (`cecvold.c`); the app is a webOS web app
-under `app/`. CI builds the ipk and publishes a release on every `vX.Y.Z` tag. To
-build locally on Linux (with `gcc-aarch64-linux-gnu` and `@webosose/ares-cli`
-installed):
+under `app/`. The ipk is universal: it carries both a 64-bit (aarch64) and a
+32-bit (armv7l) static build, and `app/cecvold` (a small launcher script) execs
+the one matching the TV at runtime. CI builds and publishes a release on every
+`vX.Y.Z` tag. To build locally on Linux (with `gcc-aarch64-linux-gnu`,
+`gcc-arm-linux-gnueabihf`, and `@webosose/ares-cli` installed):
 
 ```
-aarch64-linux-gnu-gcc -O2 -static -o app/cecvold cecvold.c
+make app
 ares-package app/
 ```
 

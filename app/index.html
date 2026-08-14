@@ -165,7 +165,7 @@ function hookText(c,enabled){return [
   "ENABLED="+(enabled?"1":"0"),"CEC="+c.cec,"EMIT="+c.emit,"EMIT_NODE="+c.node,"HOLD="+c.hold,
   "OUTPUT="+c.output,"KEY_UP="+c.keyUp,"KEY_DOWN="+c.keyDown,"KEY_MUTE="+c.keyMute,"HDMI_PORT="+(c.hdmi||"2"),"BIN="+BIN,"LOG="+LOG,
   "# --- do not edit below ---",'[ "$ENABLED" = "1" ] || exit 0','[ -x "$BIN" ] || exit 0',
-  'pidof cecvold >/dev/null 2>&1 && exit 0',
+  'pidof cecvold cecvold.aarch64 cecvold.armv7l >/dev/null 2>&1 && exit 0',
   'A="--cec $CEC --emit $EMIT --emit-node $EMIT_NODE --output $OUTPUT --key-up $KEY_UP --key-down $KEY_DOWN --key-mute $KEY_MUTE"',
   '[ "$HOLD" = "1" ] && A="$A --hold"','"$BIN" $A >"$LOG" 2>&1 &',"exit 0"].join("\n")+"\n";}
 function parseHook(txt){var g=function(k){var m=txt.match(new RegExp("^"+k+"=(.*)$","m"));return m?m[1].trim():null;};
@@ -176,7 +176,7 @@ function parseHook(txt){var g=function(k){var m=txt.match(new RegExp("^"+k+"=(.*
 
 /* actions */
 async function refresh(){
-  var cmd='echo "PID=$(pidof cecvold|tr \' \' \',\')"; echo "CEC=$(ls /dev/cec0 2>/dev/null)"; '
+  var cmd='echo "PID=$(pidof cecvold cecvold.aarch64 cecvold.armv7l|tr \' \' \',\')"; echo "CEC=$(ls /dev/cec0 2>/dev/null)"; '
         +'echo "BIN=$(test -x '+BIN+' && echo 1)"; echo "===HOOK==="; cat '+HOOK+' 2>/dev/null';
   var r=await exec(cmd);
   if(!r.ok&&!r.out){state.ready=false;return;}
@@ -189,18 +189,18 @@ async function refresh(){
 }
 async function syncHook(){
   await writeFile(HOOK,hookText(state.cfg,state.enabled));
-  var cmd="mkdir -p "+HDIR+" && chmod +x "+HOOK+" && chmod +x "+BIN+"; kill $(pidof cecvold) 2>/dev/null; true";
+  var cmd="mkdir -p "+HDIR+" && chmod +x "+HOOK+" && chmod +x "+BIN+" "+BIN+".aarch64 "+BIN+".armv7l 2>/dev/null; kill $(pidof cecvold cecvold.aarch64 cecvold.armv7l) 2>/dev/null; true";
   if(state.enabled) cmd+="; sh "+HOOK;
   await exec(cmd);
 }
-async function removeAll(){ await exec("rm -f "+HOOK+"; kill $(pidof cecvold) 2>/dev/null; true"); state.enabled=false; }
+async function removeAll(){ await exec("rm -f "+HOOK+"; kill $(pidof cecvold cecvold.aarch64 cecvold.armv7l) 2>/dev/null; true"); state.enabled=false; }
 async function detectNode(){var r=await exec(BIN+" --autodetect 2>/dev/null | tail -1");
   return (r.out.match(/\/dev\/input\/event\d+/)||[])[0]||"";}
 async function volumeTest(sec){var lg="/tmp/cecvold-probe.log";
   var r=await exec("timeout "+sec+" "+BIN+" -v --emit inject --emit-node /dev/null 2>"+lg+" >/dev/null; "
     +"echo \"UP=$(grep -c '44 41' "+lg+") DN=$(grep -c '44 42' "+lg+") MU=$(grep -c '44 43' "+lg+")\"");
   return {up:+(r.out.match(/UP=(\d+)/)||[])[1]||0,dn:+(r.out.match(/DN=(\d+)/)||[])[1]||0,mu:+(r.out.match(/MU=(\d+)/)||[])[1]||0};}
-async function readLog(){var r=await exec("tail -n 22 "+LOG+" 2>/dev/null; echo; echo \"[pid $(pidof cecvold)]\"");return r.out.trim()||"No log yet.";}
+async function readLog(){var r=await exec("tail -n 22 "+LOG+" 2>/dev/null; echo; echo \"[pid $(pidof cecvold cecvold.aarch64 cecvold.armv7l)]\"");return r.out.trim()||"No log yet.";}
 async function launchInput(port){ await exec("luna-send -n 1 'luna://com.webos.applicationManager/launch' '{\"id\":\"com.webos.app.hdmi"+(port||"2")+"\"}'"); }
 
 /* volume meter */

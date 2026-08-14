@@ -4,6 +4,12 @@ Versions before 0.4.0 were unversioned development builds shared during bring-up
 (protocol validation on hardware, two UI passes, and the on/off state fix). The
 app is pre-1.0; 1.0.0 is reserved for the first release considered done.
 
+## 1.0.0
+- Universal ipk: ships both aarch64 (64-bit) and armv7l (32-bit) static builds
+  of the daemon; `app/cecvold` is now a launcher that execs the one matching
+  `uname -m`, so one package covers all rooted LG TVs.
+- Process checks (hook and app UI) match the arch-specific binary names.
+
 ## 0.5.0
 - Regenerated app icons: dark fill no longer bleeds outside the rounded
   corners, and the top sheen is a smooth gradient instead of a hard band.

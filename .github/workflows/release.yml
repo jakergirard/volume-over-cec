@@ -2,6 +2,7 @@ name: release
 on:
   push:
     tags: [ 'v*' ]
+  workflow_dispatch:
 permissions:
   contents: write
 
@@ -11,13 +12,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build aarch64 binary
+      - name: Build binaries (aarch64 + armv7l)
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu
-          aarch64-linux-gnu-gcc -O2 -static -o app/cecvold cecvold.c
-          aarch64-linux-gnu-strip app/cecvold
-          chmod +x app/cecvold
+          sudo apt-get install -y gcc-aarch64-linux-gnu gcc-arm-linux-gnueabihf
+          aarch64-linux-gnu-gcc -O2 -static -o app/cecvold.aarch64 cecvold.c
+          aarch64-linux-gnu-strip app/cecvold.aarch64
+          arm-linux-gnueabihf-gcc -O2 -static -o app/cecvold.armv7l cecvold.c
+          arm-linux-gnueabihf-strip app/cecvold.armv7l
+          chmod +x app/cecvold app/cecvold.aarch64 app/cecvold.armv7l
 
       - name: Package ipk
         run: |
@@ -45,9 +48,25 @@ jobs:
           }
           JSON
 
+      - name: Extract release notes from CHANGELOG
+        run: |
+          VER=$(node -e "console.log(require('./app/appinfo.json').version)")
+          awk "/^## ${VER}\$/{f=1;next} /^## /{f=0} f" CHANGELOG.md > RELEASE_NOTES.md
+          cat RELEASE_NOTES.md
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: org.webosbrew.cecvold-build
+          path: |
+            org.webosbrew.cecvold_*_all.ipk
+            org.webosbrew.cecvold.manifest.json
+
       - name: Publish release
+        if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@v2
         with:
+          body_path: RELEASE_NOTES.md
           files: |
             org.webosbrew.cecvold_*_all.ipk
             org.webosbrew.cecvold.manifest.json

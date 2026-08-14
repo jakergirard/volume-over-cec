@@ -14,7 +14,7 @@ LOG=/var/log/cecvold.log
 # --- do not edit below ---
 [ "$ENABLED" = "1" ] || exit 0
 [ -x "$BIN" ] || exit 0
-pidof cecvold >/dev/null 2>&1 && exit 0
+pidof cecvold cecvold.aarch64 cecvold.armv7l >/dev/null 2>&1 && exit 0
 A="--cec $CEC --emit $EMIT --emit-node $EMIT_NODE --output $OUTPUT --key-up $KEY_UP --key-down $KEY_DOWN --key-mute $KEY_MUTE"
 [ "$HOLD" = "1" ] && A="$A --hold"
 "$BIN" $A >"$LOG" 2>&1 &
