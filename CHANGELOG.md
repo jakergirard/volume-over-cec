@@ -4,6 +4,13 @@ Versions before 0.4.0 were unversioned development builds shared during bring-up
 (protocol validation on hardware, two UI passes, and the on/off state fix). The
 app is pre-1.0; 1.0.0 is reserved for the first release considered done.
 
+## 0.5.0
+- Regenerated app icons: dark fill no longer bleeds outside the rounded
+  corners, and the top sheen is a smooth gradient instead of a hard band.
+  Added a 256px icon for the store listing.
+- README rebuilt around the app (screenshots table, Mermaid how-it-works
+  diagram); icon generator script removed - the final PNGs are committed.
+
 ## 0.4.0
 - webOS-native UI: left rail, grouped rows, toggles, white focus highlight.
 - Setup wizard reordered so the bridge is enabled before the Apple TV step,
