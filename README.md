@@ -10,6 +10,12 @@ falls back to IR and the iOS Remote app can't change volume at all. This bridges
 it back: it catches CEC volume and drives the TV's native volume path, so the
 on-screen bar shows and volume works from both the remote and the iOS Remote app.
 
+## Screenshots
+
+| Setup | Status | Settings |
+| --- | --- | --- |
+| ![Setup wizard](screenshots/wizard.png) | ![Status](screenshots/status.png) | ![Settings](screenshots/settings.png) |
+
 ## Requirements
 
 - A rooted LG webOS TV with the Homebrew Channel. You can check whether your model
@@ -39,16 +45,17 @@ Magic Remote. Because volume now travels over CEC, the iOS Remote app controls i
 too. On models where injection isn't honored there's an audio-service fallback
 that changes volume without the on-screen bar.
 
+![How it works: a CEC volume press reaches /dev/cec0, where stock webOS drops it; cecvold injects the matching key event into the input node webOS reads, driving the native volume path](docs/how-it-works.svg)
+
 ## Building from source
 
 The daemon is a single static C file (`cecvold.c`); the app is a webOS web app
 under `app/`. CI builds the ipk and publishes a release on every `vX.Y.Z` tag. To
-build locally on Linux (with `gcc-aarch64-linux-gnu`, `@webosose/ares-cli`, and
-Pillow installed):
+build locally on Linux (with `gcc-aarch64-linux-gnu` and `@webosose/ares-cli`
+installed):
 
 ```
 aarch64-linux-gnu-gcc -O2 -static -o app/cecvold cecvold.c
-python3 make_icons.py
 ares-package app/
 ```
 
