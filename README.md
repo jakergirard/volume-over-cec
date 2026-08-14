@@ -45,7 +45,18 @@ Magic Remote. Because volume now travels over CEC, the iOS Remote app controls i
 too. On models where injection isn't honored there's an audio-service fallback
 that changes volume without the on-screen bar.
 
-![How it works: a CEC volume press reaches /dev/cec0, where stock webOS drops it; cecvold injects the matching key event into the input node webOS reads, driving the native volume path](docs/how-it-works.svg)
+flowchart LR
+    atv["Apple TV<br>any HDMI-CEC source"] -- "HDMI-CEC volume / mute" --> cec0
+    subgraph tv["LG webOS TV — rooted"]
+        cec0["/dev/cec0"]
+        cec0 -.-> stock["webOS CEC handler<br>stock behavior"]
+        stock -.-> drop["✕ volume ops dropped<br>no OSD · no volume change"]
+        cec0 --> d["cecvold<br>root daemon"]
+        d -- "injects KEY 115 / 114 / 113" --> evt["/dev/input/eventN"]
+        evt --> native["Native volume path<br>OSD · repeat · speakers"]
+    end
+    classDef bad stroke:#e05d54,color:#e05d54,fill:transparent
+    class drop bad
 
 ## Building from source
 
