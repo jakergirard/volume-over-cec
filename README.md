@@ -45,6 +45,7 @@ Magic Remote. Because volume now travels over CEC, the iOS Remote app controls i
 too. On models where injection isn't honored there's an audio-service fallback
 that changes volume without the on-screen bar.
 
+```mermaid
 flowchart LR
     atv["Apple TV<br>any HDMI-CEC source"] -- "HDMI-CEC volume / mute" --> cec0
     subgraph tv["LG webOS TV — rooted"]
@@ -57,6 +58,7 @@ flowchart LR
     end
     classDef bad stroke:#e05d54,color:#e05d54,fill:transparent
     class drop bad
+```
 
 ## Building from source
 
