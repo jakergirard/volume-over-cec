@@ -123,6 +123,11 @@ input.txt:focus{outline:none;border-color:#fff;box-shadow:0 0 0 3px rgba(255,255
 .wbody{font-size:22px;color:var(--ink2);line-height:1.5;margin-top:18px;max-width:760px}
 .wbody b{color:var(--ink);font-weight:600}
 .wnav{display:flex;gap:16px;margin-top:40px}
+.hdmipick{display:flex;gap:10px;margin:16px 0 4px}
+.hdmipick button{font-family:var(--sans);font-size:20px;padding:13px 24px;border-radius:12px;border:0;
+  background:rgba(255,255,255,.10);color:var(--ink);cursor:pointer;transition:.12s}
+.hdmipick button[aria-pressed="true"]{background:#fff;color:#141518}
+.hdmipick button:focus{outline:none;background:#fff;color:#141518;box-shadow:0 0 0 3px var(--bg),0 0 0 6px #fff}
 </style>
 </head>
 <body>
@@ -142,7 +147,7 @@ var APP="/media/developer/apps/usr/palm/applications/org.webosbrew.cecvold";
 var BIN=APP+"/cecvold", HDIR="/var/lib/webosbrew/init.d", HOOK=HDIR+"/cecvold", LOG="/var/log/cecvold.log";
 
 var state={ ready:false, configured:false, enabled:false, running:false, cecPresent:false, binPresent:false,
-  cfg:{cec:"/dev/cec0",emit:"inject",node:"/dev/input/event1",hold:"0",output:"tv_speaker",keyUp:"115",keyDown:"114",keyMute:"113"} };
+  cfg:{cec:"/dev/cec0",emit:"inject",node:"/dev/input/event1",hold:"0",output:"tv_speaker",keyUp:"115",keyDown:"114",keyMute:"113",hdmi:"2"} };
 var curView="status", volTimer=null, lastLevel=-1;
 
 /* bridge */
@@ -158,7 +163,7 @@ function writeFile(p,c){return exec("echo '"+b64(c)+"' | base64 -d > "+p);}
 function hookText(c,enabled){return [
   "#!/bin/sh","# Volume over CEC - managed by the app UI. Values below are written by the app.",
   "ENABLED="+(enabled?"1":"0"),"CEC="+c.cec,"EMIT="+c.emit,"EMIT_NODE="+c.node,"HOLD="+c.hold,
-  "OUTPUT="+c.output,"KEY_UP="+c.keyUp,"KEY_DOWN="+c.keyDown,"KEY_MUTE="+c.keyMute,"BIN="+BIN,"LOG="+LOG,
+  "OUTPUT="+c.output,"KEY_UP="+c.keyUp,"KEY_DOWN="+c.keyDown,"KEY_MUTE="+c.keyMute,"HDMI_PORT="+(c.hdmi||"2"),"BIN="+BIN,"LOG="+LOG,
   "# --- do not edit below ---",'[ "$ENABLED" = "1" ] || exit 0','[ -x "$BIN" ] || exit 0',
   'pidof cecvold >/dev/null 2>&1 && exit 0',
   'A="--cec $CEC --emit $EMIT --emit-node $EMIT_NODE --output $OUTPUT --key-up $KEY_UP --key-down $KEY_DOWN --key-mute $KEY_MUTE"',
@@ -167,7 +172,7 @@ function parseHook(txt){var g=function(k){var m=txt.match(new RegExp("^"+k+"=(.*
   if(!g("BIN"))return null;
   return {enabled:g("ENABLED")==="1", cfg:{cec:g("CEC")||"/dev/cec0",emit:g("EMIT")||"inject",
     node:g("EMIT_NODE")||"/dev/input/event1",hold:g("HOLD")||"0",output:g("OUTPUT")||"tv_speaker",
-    keyUp:g("KEY_UP")||"115",keyDown:g("KEY_DOWN")||"114",keyMute:g("KEY_MUTE")||"113"}};}
+    keyUp:g("KEY_UP")||"115",keyDown:g("KEY_DOWN")||"114",keyMute:g("KEY_MUTE")||"113",hdmi:g("HDMI_PORT")||"2"}};}
 
 /* actions */
 async function refresh(){
@@ -196,6 +201,7 @@ async function volumeTest(sec){var lg="/tmp/cecvold-probe.log";
     +"echo \"UP=$(grep -c '44 41' "+lg+") DN=$(grep -c '44 42' "+lg+") MU=$(grep -c '44 43' "+lg+")\"");
   return {up:+(r.out.match(/UP=(\d+)/)||[])[1]||0,dn:+(r.out.match(/DN=(\d+)/)||[])[1]||0,mu:+(r.out.match(/MU=(\d+)/)||[])[1]||0};}
 async function readLog(){var r=await exec("tail -n 22 "+LOG+" 2>/dev/null; echo; echo \"[pid $(pidof cecvold)]\"");return r.out.trim()||"No log yet.";}
+async function launchInput(port){ await exec("luna-send -n 1 'luna://com.webos.applicationManager/launch' '{\"id\":\"com.webos.app.hdmi"+(port||"2")+"\"}'"); }
 
 /* volume meter */
 function updateBar(level,muted){var f=document.getElementById("barfill"),n=document.getElementById("volnum");if(!f)return;
@@ -229,12 +235,18 @@ function renderStatus(){
       +sRow("Injection node", c.emit==="inject"?c.node:"Not used")
       +sRow("When held", c.hold==="1"?"TV's repeat rate":"Steady rate")
       +'</div>';
+    h+='<div class="group"><div class="row arow" id="openinput" tabindex="0"><div class="rl">'
+      +'<span class="t">Switch to Apple TV</span><span class="d">Open the Apple TV input to change its settings (HDMI '+(c.hdmi||"2")+')</span></div>'
+      +'<span class="chev">\u203a</span></div></div>';
   }
   view.innerHTML=h;
   document.getElementById("master").onclick=async function(){
     state.enabled=!state.enabled; if(state.enabled&&!state.cfg.node){ /* keep */ }
     await syncHook(); await refresh(); setView("status");
   };
+  var oi=document.getElementById("openinput");
+  if(oi){ oi.onclick=function(){ launchInput(state.cfg.hdmi||"2"); };
+    oi.onkeydown=function(e){ if(e.keyCode===13) this.onclick(); }; }
   if(on)startVol();
   focusFirst();
 }
@@ -328,16 +340,22 @@ async function wCheck(){wb().innerHTML='<div class="wtitle">Checking your TV</di
   wnav(ok?"Continue":null,function(){wiz.step++;renderWizard();});}
 function chk(n,pass,st){return '<div class="check '+(pass?"pass":"fail")+'"><span class="dot">'+(pass?"\u2713":"!")+'</span><span>'+n+'</span><span class="cs">'+st+'</span></div>';}
 function wDoneInstruct(){
+  var port=state.cfg.hdmi||"2";
   document.querySelector(".content").innerHTML='<div class="view wizwrap">'
    +'<div class="wkicker" style="color:#7fd3a3">\u2713 Volume control is on</div>'
    +'<div class="wtitle">One last step \u2014 on the Apple TV</div>'
-   +'<div class="wbody">Open <b>Settings \u203a Remotes and Devices \u203a Volume Control</b> and choose <b>HDMI</b>. The moment you do, volume works \u2014 from the remote and the iOS Remote app. There\u2019s nothing to come back to here.</div>'
-   +'<div class="wbody" style="font-size:19px;color:var(--ink3)">You can confirm it anytime under Diagnostics \u203a Test volume.</div>'
-   +'<div class="wnav"><button class="btn primary" id="wfin">Done</button></div></div>';
+   +'<div class="wbody">Open <b>Settings \u203a Remotes and Devices \u203a Volume Control</b> and choose <b>HDMI</b>. As soon as you do, volume works \u2014 from the remote and the iOS Remote app.</div>'
+   +'<div class="wbody" style="font-size:18px;color:var(--ink3);margin-top:10px">Which input is the Apple TV on?</div>'
+   +'<div class="hdmipick" id="hpick">'+[1,2,3,4].map(function(n){return '<button data-p="'+n+'" aria-pressed="'+(String(n)===port?"true":"false")+'">HDMI '+n+'</button>';}).join("")+'</div>'
+   +'<div class="wnav"><button class="btn primary" id="wswitch">Switch to Apple TV</button><button class="btn" id="wfin">Done</button></div></div>';
+  document.querySelectorAll("#hpick button").forEach(function(b){b.onclick=function(){
+    document.querySelectorAll("#hpick button").forEach(function(x){x.setAttribute("aria-pressed","false");});
+    b.setAttribute("aria-pressed","true"); state.cfg.hdmi=b.dataset.p; syncHook();};});
+  document.getElementById("wswitch").onclick=function(){ launchInput(state.cfg.hdmi||"2"); };
   var f=document.getElementById("wfin");
   f.onclick=function(){ document.querySelector(".content").innerHTML='<div class="view" id="view"></div>';
     view=document.getElementById("view"); showRail(true); setView("status"); };
-  f.focus();
+  document.getElementById("wswitch").focus();
 }
 async function wDetect(){wb().innerHTML='<div class="wtitle">Finding the volume channel</div>'
   +'<div class="wbody">Locating the input your TV model uses for volume. It ticks the volume once while probing, then restores it.</div>'

@@ -108,7 +108,7 @@ Remote node.
 ```
 cp cecvold app/cecvold && chmod +x app/cecvold
 npm i -g @webosose/ares-cli          # if you don't have ares-package
-ares-package app/                    # -> org.webosbrew.cecvold_0.3.0_all.ipk
+ares-package app/                    # -> org.webosbrew.cecvold_0.4.0_all.ipk
 ```
 
 Install the ipk (Dev Manager Desktop is easiest: connect the TV, Install, pick

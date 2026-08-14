@@ -1,7 +1,7 @@
 # Distributing Volume over CEC
 
 Three tiers, from "get it on my own TVs" to "list it in the store". Prebuilt
-artifacts are in this package: the ipk (`org.webosbrew.cecvold_0.2.0_all.ipk`)
+artifacts are in this package: the ipk (`org.webosbrew.cecvold_0.4.0_all.ipk`)
 and the app manifest (`dist/org.webosbrew.cecvold.manifest.json`).
 
 Note on architecture: the bundled binary is aarch64 (64-bit). That covers the C1
@@ -19,17 +19,17 @@ Dev Manager Desktop (GUI, easiest): add each TV, Install, pick the ipk.
 ares-install (CLI, if you set up ares device auth):
 
 ```
-ares-install --device TVNAME org.webosbrew.cecvold_0.2.0_all.ipk
+ares-install --device TVNAME org.webosbrew.cecvold_0.4.0_all.ipk
 ```
 
 Straight over SSH (no ares device setup): copy the ipk to the TV and install via
 the app-install Luna service:
 
 ```
-scp org.webosbrew.cecvold_0.2.0_all.ipk root@TV_IP:/tmp/
+scp org.webosbrew.cecvold_0.4.0_all.ipk root@TV_IP:/tmp/
 ssh root@TV_IP
 luna-send-pub -i 'luna://com.webos.appInstallService/dev/install' \
-  '{"id":"org.webosbrew.cecvold","ipkUrl":"/tmp/org.webosbrew.cecvold_0.2.0_all.ipk","subscribe":true}'
+  '{"id":"org.webosbrew.cecvold","ipkUrl":"/tmp/org.webosbrew.cecvold_0.4.0_all.ipk","subscribe":true}'
 ```
 
 Then open "Volume over CEC" on the TV, press Enable (it autodetects the node and
@@ -43,8 +43,8 @@ a small repo manifest, and add its URL in Homebrew Channel > Settings > Add
 repository. Now the app installs and self-updates in-app on any TV you point at
 the repo, and you can share the URL.
 
-- Put `org.webosbrew.cecvold_0.2.0_all.ipk` and
-  `org.webosbrew.cecvold.manifest.json` on a GitHub Release (tag `v0.2.0`). The
+- Put `org.webosbrew.cecvold_0.4.0_all.ipk` and
+  `org.webosbrew.cecvold.manifest.json` on a GitHub Release (tag `v0.4.0`). The
   manifest's `ipkUrl` already points at that release path; keep them together.
 - A repo is just a directory served over HTTPS containing the manifests it lists.
   The easiest route is the apps-repo tooling, but for a private one-app repo you
@@ -64,7 +64,7 @@ One PR to the central repo, reusing your release artifacts.
    don't repackage by hand:
 
    ```
-   git tag v0.2.0 && git push --tags
+   git tag v0.4.0 && git push --tags
    ```
 
 2. Fork `github.com/webosbrew/apps-repo`, add `packages/org.webosbrew.cecvold.yml`
